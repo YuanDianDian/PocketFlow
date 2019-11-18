@@ -29,11 +29,11 @@ from utils.multi_gpu_wrapper import MultiGpuWrapper as mgw
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_integer('mobilenet_version', 1, 'MobileNet\'s version (1 or 2)')
+tf.app.flags.DEFINE_integer('mobilenet_version', 2, 'MobileNet\'s version (1 or 2)')
 tf.app.flags.DEFINE_float('mobilenet_depth_mult', 1.0, 'MobileNet\'s depth multiplier')
 tf.app.flags.DEFINE_float('nb_epochs_rat', 1.0, '# of training epochs\'s ratio')
-tf.app.flags.DEFINE_float('lrn_rate_init', 0.045, 'initial learning rate')
-tf.app.flags.DEFINE_float('batch_size_norm', 96, 'normalization factor of batch size')
+tf.app.flags.DEFINE_float('lrn_rate_init', 0.001, 'initial learning rate')
+tf.app.flags.DEFINE_float('batch_size_norm', 100, 'normalization factor of batch size')
 tf.app.flags.DEFINE_float('momentum', 0.9, 'momentum coefficient')
 tf.app.flags.DEFINE_float('loss_w_dcy', 4e-5, 'weight decaying loss\'s coefficient')
 
@@ -120,16 +120,20 @@ class ModelHelper(AbstractModelHelper):
     batch_size = FLAGS.batch_size * (1 if not FLAGS.enbl_multi_gpu else mgw.size())
     if FLAGS.mobilenet_version == 1:
       nb_epochs = 100
-      idxs_epoch = [30, 60, 80, 90]
-      decay_rates = [1.0, 0.1, 0.01, 0.001, 0.0001]
-      lrn_rate = setup_lrn_rate_piecewise_constant(global_step, batch_size, idxs_epoch, decay_rates)
-      nb_iters = int(FLAGS.nb_smpls_train * nb_epochs * FLAGS.nb_epochs_rat / batch_size)
+      nb_epochs = 412
+      idxs_epoch = [12000,20000]
+      step_rate=[200,200,4000]
+      epoch_step = setup_lrn_rate_piecewise_constant(global_step, batch_size, idxs_epoch, step_rate)
+      decay_rates = [0.985, 0.980, 0.505]
+      decay_rate = setup_lrn_rate_piecewise_constant(global_step, batch_size, idxs_epoch, decay_rates)
+      lrn_rate = setup_lrn_rate_exponential_decay(global_step, batch_size, epoch_step, decay_rate)      
+      nb_iters = int(30000)
     elif FLAGS.mobilenet_version == 2:
       nb_epochs = 412
-      epoch_step = 2.5
-      decay_rate = 0.98 ** epoch_step  # which is better, 0.98 OR (0.98 ** epoch_step)?
+      epoch_step = 500
+      decay_rate = 0.9  # which is better, 0.98 OR (0.98 ** epoch_step)?
       lrn_rate = setup_lrn_rate_exponential_decay(global_step, batch_size, epoch_step, decay_rate)
-      nb_iters = int(FLAGS.nb_smpls_train * nb_epochs * FLAGS.nb_epochs_rat / batch_size)
+      nb_iters = int(15000)
     else:
       raise ValueError('invalid MobileNet version: {}'.format(FLAGS.mobilenet_version))
 

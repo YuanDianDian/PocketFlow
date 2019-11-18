@@ -37,9 +37,8 @@ def setup_lrn_rate_piecewise_constant(global_step, batch_size, idxs_epoch, decay
   idxs_epoch = [idx_epoch * FLAGS.nb_epochs_rat for idx_epoch in idxs_epoch]
 
   # setup learning rate with the piecewise constant strategy
-  lrn_rate_init = FLAGS.lrn_rate_init * batch_size / FLAGS.batch_size_norm
-  nb_batches_per_epoch = float(FLAGS.nb_smpls_train) / batch_size
-  bnds = [int(nb_batches_per_epoch * idx_epoch) for idx_epoch in idxs_epoch]
+  lrn_rate_init = 1
+  bnds = [int(idx_epoch) for idx_epoch in idxs_epoch]
   vals = [lrn_rate_init * decay_rate for decay_rate in decay_rates]
   lrn_rate = tf.train.piecewise_constant(global_step, bnds, vals)
 
@@ -59,11 +58,9 @@ def setup_lrn_rate_exponential_decay(global_step, batch_size, epoch_step, decay_
   """
 
   # adjust the step size & decaying rate w.r.t. FLAGS.nb_epochs_rat
-  epoch_step *= FLAGS.nb_epochs_rat
-
   # setup learning rate with the exponential decay strategy
-  lrn_rate_init = FLAGS.lrn_rate_init * batch_size / FLAGS.batch_size_norm
-  batch_step = int(FLAGS.nb_smpls_train * epoch_step / batch_size)
+  lrn_rate_init = FLAGS.lrn_rate_init
+  batch_step = epoch_step
   lrn_rate = tf.train.exponential_decay(
     lrn_rate_init, tf.cast(global_step, tf.int32), batch_step, decay_rate, staircase=True)
 
